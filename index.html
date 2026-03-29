@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小虎的畫師日誌 v1.0.1</title>
+    <title>小虎的畫師日誌 v1.0.9</title>
     <style>
         body { font-family: sans-serif; padding: 20px; background-color: #f4f4f4; color: #333; }
         .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -19,7 +19,7 @@
 <body>
 
 <div class="container">
-    <div class="version-tag">Build: 20260329-v1.0.1</div>
+    <div class="version-tag">Build: 20260329-v1.0.9</div>
     <h1>🐯 小虎的畫師日誌</h1>
     
     <div id="auth-section">
@@ -29,14 +29,14 @@
     </div>
 
     <div id="admin-zone">
-        <h3>✨ 只有小虎能看的發文框</h3>
-        <textarea id="post-content" placeholder="今天的工作室又有什麼趣事？(廣東那邊有什麼進展嗎？)"></textarea>
-        <button onclick="savePost()" style="background:#2ed573; color:white; width:100%;">發布日誌</button>
+        <h3>✨ 只有小虎能寫的日誌</h3>
+        <textarea id="post-content" placeholder="今天工作室的工作順利嗎？"></textarea>
+        <button onclick="savePost()" style="background:#2ed573; color:white; width:100%;">發布</button>
     </div>
 
     <hr style="margin: 20px 0;">
     <div id="posts-display">
-        <p>正在努力加載內容...</p>
+        <p>正在載入畫師的心血...</p>
     </div>
 </div>
 
@@ -45,15 +45,15 @@
     import { getAuth, signInWithPopup, GithubAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // 1. Firebase 配置 (請填入你的專案資訊)
+    // 1. !!智鱗已根據你的截圖填入真實配置!!
     const firebaseConfig = {
-        apiKey: "AIza...", 
+        apiKey: "AIzaSyB8RkWH-59lgYef2un0HZlh6Qztb0ARwPQ",
         authDomain: "blog-f2a36.firebaseapp.com",
         projectId: "blog-f2a36",
-        databaseURL: "https://blog-f2a36-default-rtdb.firebaseio.com",
         storageBucket: "blog-f2a36.appspot.com",
-        messagingSenderId: "...",
-        appId: "..."
+        messagingSenderId: "857805164808",
+        appId: "1:857805164808:web:7563148f9368d374f368d3",
+        measurementId: "G-G911T207L8"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -61,17 +61,17 @@
     const db = getDatabase(app);
     const provider = new GithubAuthProvider();
 
-    // 2. 登入動作：使用我們辛苦拿到的 ID
+    // 2. 登入：呼叫彈窗
     window.login = () => {
         signInWithPopup(auth, provider).catch(err => {
-            console.error(err);
-            alert("登入失敗，請檢查 GitHub 設定或網路！");
+            console.error("報錯：", err.code);
+            alert("❌ 登入失敗：" + err.message);
         });
     };
 
     window.logout = () => signOut(auth);
 
-    // 3. 狀態監聽：實現「打開就是打開了」的絲滑感 [cite: 2026-03-29]
+    // 3. 監聽登入：這決定發文框會不會出現
     onAuthStateChanged(auth, (user) => {
         const adminZone = document.getElementById('admin-zone');
         const loginBtn = document.getElementById('btn-login');
@@ -81,7 +81,7 @@
         if (user) {
             loginBtn.style.display = 'none';
             logoutBtn.style.display = 'inline-block';
-            userInfo.innerText = "歡迎回來，" + user.displayName + "！";
+            userInfo.innerText = "歡迎回來，" + user.displayName;
             adminZone.style.display = 'block'; 
         } else {
             loginBtn.style.display = 'inline-block';
@@ -91,7 +91,7 @@
         }
     });
 
-    // 4. 發文功能 (Realtime Database)
+    // 4. 發文到 Realtime Database
     window.savePost = () => {
         const content = document.getElementById('post-content').value;
         if (!content) return;
@@ -100,11 +100,11 @@
             time: new Date().toLocaleString()
         }).then(() => {
             document.getElementById('post-content').value = "";
-            alert("日誌已更新！");
+            alert("發布成功！🐯");
         });
     };
 
-    // 5. 即時顯示日誌
+    // 5. 抓取文章顯示
     onValue(ref(db, 'posts'), (snapshot) => {
         const display = document.getElementById('posts-display');
         display.innerHTML = "";
@@ -114,9 +114,5 @@
         });
     });
 </script>
-
-</body>
-</html>
-    </script>
 </body>
 </html>
