@@ -3,49 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小虎的畫師日誌 v1.0.9</title>
+    <title>小虎的畫師日誌 v1.2.0</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f4; color: #333; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .version-tag { font-size: 12px; color: #888; text-align: right; }
-        button { cursor: pointer; padding: 12px 24px; border: none; border-radius: 8px; font-weight: bold; transition: 0.3s; }
-        #btn-login { background: #24292f; color: white; }
-        #btn-login:hover { background: #000; }
-        #admin-zone { display: none; margin-top: 25px; padding: 15px; border: 2px dashed #24292f; border-radius: 10px; }
-        textarea { width: 100%; height: 80px; margin: 10px 0; border-radius: 5px; border: 1px solid #ddd; padding: 10px; }
-        .post { background: white; border-bottom: 1px solid #eee; padding: 15px 0; }
+        body { font-family: 'Inter', sans-serif; padding: 20px; background-color: #f0f2f5; color: #1c1e21; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 25px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+        .version-tag { font-size: 11px; color: #90949c; text-align: right; margin-bottom: 10px; }
+        h1 { text-align: center; color: #1877f2; }
+        button { cursor: pointer; padding: 12px; border: none; border-radius: 8px; font-weight: bold; width: 100%; transition: 0.2s; font-size: 16px; }
+        #btn-login { background: #4285F4; color: white; margin-bottom: 10px; }
+        #btn-login:hover { background: #357ae8; }
+        #btn-logout { background: #f02849; color: white; display: none; margin-top: 10px; }
+        #admin-zone { display: none; margin-top: 20px; padding: 20px; background: #f7f8fa; border-radius: 12px; border: 2px solid #e4e6eb; }
+        textarea { width: 100%; height: 100px; margin: 10px 0; border-radius: 8px; border: 1px solid #dddfe2; padding: 12px; box-sizing: border-box; resize: none; }
+        .post { background: white; border-radius: 8px; border: 1px solid #dddfe2; padding: 15px; margin-top: 15px; }
+        .post strong { color: #65676b; font-size: 13px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="version-tag">Build: 20260329-v1.0.9</div>
+    <div class="version-tag">Build: 20260329-v1.2.0 (Google Auth)</div>
     <h1>🐯 小虎的畫師日誌</h1>
     
     <div id="auth-section">
-        <button id="btn-login" onclick="login()">🐾 GitHub 爽快登入</button>
-        <button id="btn-logout" onclick="logout()" style="display:none; background:#ff4757; color:white;">登出</button>
-        <p id="user-info" style="margin-top:10px; font-weight:bold;"></p>
+        <button id="btn-login" onclick="login()">🐾 使用 Google 快速登入</button>
+        <p id="user-info" style="text-align:center; margin-top:10px;"></p>
+        <button id="btn-logout" onclick="logout()">登出</button>
     </div>
 
     <div id="admin-zone">
-        <h3>✨ 只有小虎能寫的日誌</h3>
-        <textarea id="post-content" placeholder="今天工作室的工作順利嗎？"></textarea>
-        <button onclick="savePost()" style="background:#2ed573; color:white; width:100%;">發布</button>
+        <h3>✍️ 今天又有什麼創作靈感？</h3>
+        <textarea id="post-content" placeholder="在這裡寫下工作室的進度或心情..."></textarea>
+        <button onclick="savePost()" style="background:#42b72a; color:white;">發布日誌</button>
     </div>
 
-    <hr style="margin: 20px 0;">
+    <hr style="margin: 25px 0; border: 0; border-top: 1px solid #e4e6eb;">
     <div id="posts-display">
-        <p>正在載入畫師的心血...</p>
+        <p style="text-align:center; color:#8d949e;">正在加載日誌內容...</p>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithPopup, GithubAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // 1. !!智鱗已根據你的截圖填入真實配置!!
+    // 1. Firebase 配置
     const firebaseConfig = {
         apiKey: "AIzaSyB8RkWH-59lgYef2un0HZlh6Qztb0ARwPQ",
         authDomain: "blog-f2a36.firebaseapp.com",
@@ -59,19 +62,19 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getDatabase(app);
-    const provider = new GithubAuthProvider();
+    const provider = new GoogleAuthProvider();
 
-    // 2. 登入：呼叫彈窗
+    // 2. 登入邏輯
     window.login = () => {
         signInWithPopup(auth, provider).catch(err => {
-            console.error("報錯：", err.code);
+            console.error("登入錯誤：", err.code);
             alert("❌ 登入失敗：" + err.message);
         });
     };
 
     window.logout = () => signOut(auth);
 
-    // 3. 監聽登入：這決定發文框會不會出現
+    // 3. 監聽登入狀態
     onAuthStateChanged(auth, (user) => {
         const adminZone = document.getElementById('admin-zone');
         const loginBtn = document.getElementById('btn-login');
@@ -80,18 +83,18 @@
 
         if (user) {
             loginBtn.style.display = 'none';
-            logoutBtn.style.display = 'inline-block';
-            userInfo.innerText = "歡迎回來，" + user.displayName;
-            adminZone.style.display = 'block'; 
+            logoutBtn.style.display = 'block';
+            userInfo.innerText = "🐯 你好，" + user.displayName;
+            adminZone.style.display = 'block';
         } else {
-            loginBtn.style.display = 'inline-block';
+            loginBtn.style.display = 'block';
             logoutBtn.style.display = 'none';
             adminZone.style.display = 'none';
             userInfo.innerText = "";
         }
     });
 
-    // 4. 發文到 Realtime Database
+    // 4. 發文功能
     window.savePost = () => {
         const content = document.getElementById('post-content').value;
         if (!content) return;
@@ -100,17 +103,26 @@
             time: new Date().toLocaleString()
         }).then(() => {
             document.getElementById('post-content').value = "";
-            alert("發布成功！🐯");
+            alert("日誌已更新！🐾");
         });
     };
 
-    // 5. 抓取文章顯示
+    // 5. 抓取資料庫內容
     onValue(ref(db, 'posts'), (snapshot) => {
         const display = document.getElementById('posts-display');
         display.innerHTML = "";
+        if (!snapshot.exists()) {
+            display.innerHTML = "<p style='text-align:center;'>目前還沒有日誌喔。</p>";
+            return;
+        }
         snapshot.forEach((child) => {
             const data = child.val();
-            display.innerHTML = `<div class="post"><strong>${data.time}</strong><p>${data.text}</p></div>` + display.innerHTML;
+            const postHtml = `
+                <div class="post">
+                    <strong>🕒 ${data.time}</strong>
+                    <p style="margin-top:8px; line-height:1.5;">${data.text}</p>
+                </div>`;
+            display.innerHTML = postHtml + display.innerHTML;
         });
     });
 </script>
