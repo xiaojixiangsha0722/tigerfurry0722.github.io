@@ -3,69 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小虎的畫師日誌 v1.4.5</title>
+    <title>小虎的畫師日誌 v1.4.7</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f4; color: #333; }
-        .container { max-width: 550px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
-        h1 { text-align: center; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { cursor: pointer; padding: 12px; border: none; border-radius: 8px; font-weight: bold; width: 100%; transition: 0.3s; margin-top: 10px; }
-        .btn-primary { background: #333; color: white; }
-        .btn-third { background: #fff; color: #555; border: 1px solid #ddd; margin-top: 8px; font-size: 14px; display: flex; align-items: center; justify-content: center; }
-        #btn-logout { background: #ff4757; color: white; display: none; margin-top: 20px; }
+        :root { --admin-gold: #fab005; --danger: #ff4757; }
+        body { font-family: sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+        .nav-bar { background: #333; color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .container { max-width: 600px; margin: 20px auto; padding: 20px; background: white; border-radius: 12px; }
         
-        /* 區塊樣式 */
-        .zone { margin-top: 25px; padding: 20px; border-radius: 10px; border: 1px solid #ddd; }
-        .admin-box { background: #fff9db; border-color: #fab005; } /* 黃色：發文 */
-        .comment-box { background: #f1f3f5; border-color: #dee2e6; } /* 灰色：留言 */
+        /* 小小的登入按鈕與彈窗 */
+        .login-trigger { cursor: pointer; font-size: 20px; padding: 5px 10px; border-radius: 5px; background: #444; }
+        #login-modal { display: none; position: fixed; top: 60px; right: 20px; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 101; width: 250px; }
+        input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
         
-        textarea { width: 100%; height: 80px; margin: 10px 0; border-radius: 5px; padding: 10px; box-sizing: border-box; resize: none; border: 1px solid #ccc; }
-        textarea:disabled { background: #e9ecef; cursor: not-allowed; }
-        .post { background: white; border-bottom: 1px solid #eee; padding: 15px 0; }
-        .tag { font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 5px; color: white; }
-        .tag-admin { background: #fab005; }
-        .tag-user { background: #adb5bd; }
+        /* 控制台樣式 */
+        #admin-panel { display: none; background: #fff9db; border: 2px solid var(--admin-gold); padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        .control-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+        .badge { font-size: 11px; padding: 2px 6px; border-radius: 4px; color: white; }
+        
+        /* 內容隱藏邏輯 */
+        #main-content { display: none; }
+        #lock-screen { text-align: center; padding: 100px 20px; }
+        .maintenance-overlay { display: none; text-align: center; color: var(--danger); font-weight: bold; padding: 50px; }
+        
+        .post-card { border: 1px solid #eee; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .comment-box { background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px; }
     </style>
 </head>
 <body>
 
+<div class="nav-bar">
+    <strong>🐯 小虎日誌</strong>
+    <div class="login-trigger" onclick="toggleModal()">👤</div>
+</div>
+
+<div id="login-modal">
+    <div id="auth-ui">
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="handleAuth()" style="width:100%; background:var(--admin-gold); border:none; padding:10px; cursor:pointer;">登入</button>
+    </div>
+    <div id="user-info" style="display:none; text-align:center;">
+        <p id="user-display" style="font-size:12px;"></p>
+        <button onclick="logout()" style="background:var(--danger); color:white; border:none; padding:5px 10px; cursor:pointer;">登出</button>
+    </div>
+</div>
+
 <div class="container">
-    <h1>🐯 小虎的畫師日誌</h1>
-    
-    <div id="auth-section">
-        <div id="status-msg" style="text-align:center; font-size:13px; color:#666; margin-bottom:10px;">請登入以開啟留言功能</div>
-        <div id="login-fields">
-            <input type="email" id="email" placeholder="電子信箱">
-            <input type="password" id="password" placeholder="密碼">
-            <button class="btn-primary" onclick="handleAuth()">登入帳號</button>
-            <button class="btn-third" onclick="alertThirdParty()">🐾 GitHub 快速登入 (維修中)</button>
-            <button class="btn-third" onclick="alertThirdParty()">☁️ Google 帳號登入 (維修中)</button>
+    <div id="lock-screen">
+        <h2>🔒 內容已鎖定</h2>
+        <p>請點擊右上角頭像登入，即可閱讀畫師日誌。</p>
+    </div>
+
+    <div id="maintenance-msg" class="maintenance-overlay">
+        🚧 網站整修中，暫不開放瀏覽與登入 🚧<br>
+        請稍後再回來看看！
+    </div>
+
+    <div id="admin-panel">
+        <h3>🛠️ 神之控制台</h3>
+        <div class="control-group">
+            <button onclick="toggleConfig('maintenance')">🔧 切換維護模式</button>
+            <button onclick="toggleConfig('disableComments')">🚫 關閉全站留言</button>
         </div>
-        <button id="btn-logout" onclick="logout()">登出</button>
+        <div style="margin-top:10px;">
+            <input type="text" id="ban-email" placeholder="輸入要禁言的 Email" style="width:70%;">
+            <button onclick="banUser()" style="width:25%;">禁言</button>
+        </div>
+        <textarea id="admin-post" placeholder="發布新貼文..."></textarea>
+        <button onclick="createPost()" style="width:100%; background:#2ed573; color:white; border:none; padding:10px;">發布日誌</button>
     </div>
 
-    <div id="admin-zone" class="zone admin-box">
-        <h3 style="margin:0;">📢 畫師發文 (管理專用)</h3>
-        <textarea id="admin-content" placeholder="請先以管理員身分登入！" disabled></textarea>
-        <button id="btn-admin-send" onclick="savePost('posts')" style="background:#ccc;" disabled>發布日誌</button>
-    </div>
-
-    <div id="comment-zone" class="zone comment-box">
-        <h3 style="margin:0;">💬 訪客留言 (登入後可用)</h3>
-        <textarea id="user-content" placeholder="請先登入！" disabled></textarea>
-        <button id="btn-user-send" onclick="savePost('comments')" style="background:#ccc;" disabled>送出留言</button>
-    </div>
-
-    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
-    <div id="display-area">
-        <p style="text-align: center; color: #999;">正在連線到資料庫...</p>
+    <div id="main-content">
+        <div id="feed"></div>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, push, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBK3gZ-lkSPgKGcIs6eQRa-mz2ffl8Os1k",
@@ -80,101 +96,91 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getDatabase(app);
-
     const ADMIN_EMAIL = "hehans1108@gmail.com";
-    const CONTACT_MAIL = "hehans1108personal@proton.me";
 
-    window.alertThirdParty = () => {
-        alert(`很抱歉，目前暫停第三方帳號登入服務。\n請聯絡：${CONTACT_MAIL} 以取回帳號，謝謝！`);
+    window.toggleModal = () => {
+        const m = document.getElementById('login-modal');
+        m.style.display = m.style.display === 'block' ? 'none' : 'block';
     };
 
     window.handleAuth = () => {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        if (!email || !password) { alert("請填寫 Email 與密碼！"); return; }
-        signInWithEmailAndPassword(auth, email, password).catch(err => {
-            if (err.code === 'auth/user-disabled') {
-                alert(`帳號已停用，請聯絡：${CONTACT_MAIL}`);
-                return;
-            }
-            return createUserWithEmailAndPassword(auth, email, password);
-        });
+        const e = document.getElementById('email').value;
+        const p = document.getElementById('password').value;
+        signInWithEmailAndPassword(auth, e, p).catch(() => createUserWithEmailAndPassword(auth, e, p));
     };
 
     window.logout = () => signOut(auth);
 
-    onAuthStateChanged(auth, (user) => {
-        const adminInput = document.getElementById('admin-content');
-        const adminBtn = document.getElementById('btn-admin-send');
-        const userInput = document.getElementById('user-content');
-        const userBtn = document.getElementById('btn-user-send');
-        const loginUI = document.getElementById('login-fields');
-        const logoutBtn = document.getElementById('btn-logout');
-
-        if (user) {
-            loginUI.style.display = 'none';
-            logoutBtn.style.display = 'block';
-            // 只要登入，就能留言
-            userInput.disabled = false;
-            userInput.placeholder = "說點什麼吧...";
-            userBtn.disabled = false;
-            userBtn.style.background = "#333";
-
-            // 如果是管理員，開啟發文權限
-            if (user.email === ADMIN_EMAIL) {
-                adminInput.disabled = false;
-                adminInput.placeholder = "準備發布新文章...";
-                adminBtn.disabled = false;
-                adminBtn.style.background = "#fab005";
-            }
-        } else {
-            loginUI.style.display = 'block';
-            logoutBtn.style.display = 'none';
-            adminInput.disabled = userInput.disabled = true;
-            adminInput.placeholder = "請先以管理員身分登入！";
-            userInput.placeholder = "請先登入！";
-            adminBtn.style.background = userBtn.style.background = "#ccc";
-        }
-    });
-
-    window.savePost = (path) => {
-        const id = path === 'posts' ? 'admin-content' : 'user-content';
-        const content = document.getElementById(id).value;
-        if (!content) return;
-        push(ref(db, path), {
-            text: content,
-            user: auth.currentUser.email,
-            time: new Date().toLocaleString()
-        }).then(() => {
-            document.getElementById(id).value = "";
-            alert("發送成功！🐯");
-        });
+    // 控制台邏輯
+    window.toggleConfig = (key) => {
+        const r = ref(db, `config/${key}`);
+        get(r).then(s => set(r, !s.val()));
     };
 
-    // 同時顯示發文與留言 (簡單展示)
-    onValue(ref(db), (snapshot) => {
-        const display = document.getElementById('display-area');
-        display.innerHTML = "";
-        const data = snapshot.val();
-        if (!data) return;
+    window.banUser = () => {
+        const e = document.getElementById('ban-email').value;
+        if(e) set(ref(db, `banned/${e.replace(/\./g, '_')}`), true).then(() => alert('已禁言！'));
+    };
 
-        // 顯示發文 (Posts)
-        if (data.posts) {
-            Object.values(data.posts).reverse().forEach(p => {
-                display.innerHTML += `<div class="post"><strong>📅 ${p.time} <span class="tag tag-admin">日誌</span></strong><p>${p.text}</p></div>`;
-            });
-        }
-        // 顯示留言 (Comments)
-        if (data.comments) {
-            display.innerHTML += `<h4 style="margin-top:30px;">最新留言</h4>`;
-            Object.values(data.comments).reverse().forEach(c => {
-                display.innerHTML += `<div class="post" style="border-left: 3px solid #ddd; padding-left: 10px;">
-                    <small>${c.user}</small> <span class="tag tag-user">留言</span>
-                    <p style="font-size:14px;">${c.text}</p>
-                </div>`;
-            });
-        }
+    window.createPost = () => {
+        const c = document.getElementById('admin-post').value;
+        if(c) push(ref(db, 'posts'), { text: c, time: new Date().toLocaleString() }).then(() => document.getElementById('admin-post').value = "");
+    };
+
+    onAuthStateChanged(auth, (user) => {
+        const isAuth = !!user;
+        const isAdmin = user && user.email === ADMIN_EMAIL;
+        
+        document.getElementById('auth-ui').style.display = isAuth ? 'none' : 'block';
+        document.getElementById('user-info').style.display = isAuth ? 'block' : 'none';
+        if(isAuth) document.getElementById('user-display').innerText = user.email;
+
+        // 全域監聽設定
+        onValue(ref(db), (snapshot) => {
+            const data = snapshot.val() || {};
+            const config = data.config || {};
+            const isBanned = user && data.banned && data.banned[user.email.replace(/\./g, '_')];
+
+            // 1. 維護模式檢查
+            if (config.maintenance && !isAdmin) {
+                document.getElementById('maintenance-msg').style.display = 'block';
+                document.getElementById('main-content').style.display = 'none';
+                document.getElementById('lock-screen').style.display = 'none';
+                return;
+            }
+
+            // 2. 登入檢查
+            document.getElementById('maintenance-msg').style.display = 'none';
+            document.getElementById('lock-screen').style.display = isAuth ? 'none' : 'block';
+            document.getElementById('main-content').style.display = isAuth ? 'block' : 'none';
+            document.getElementById('admin-panel').style.display = isAdmin ? 'block' : 'none';
+
+            // 3. 渲染貼文
+            const feed = document.getElementById('feed');
+            feed.innerHTML = "";
+            if(data.posts) {
+                Object.keys(data.posts).reverse().forEach(id => {
+                    const p = data.posts[id];
+                    let commentUI = config.disableComments ? "<p style='color:red; font-size:12px;'>🚫 管理員已關閉留言功能</p>" : 
+                                    isBanned ? "<p style='color:red; font-size:12px;'>🔇 您已被管理員禁言</p>" :
+                                    `<div class="control-group"><input id="i-${id}" placeholder="留言..."><button onclick="sendMsg('${id}')">送出</button></div>`;
+                    
+                    feed.innerHTML += `
+                        <div class="post-card">
+                            <small>📅 ${p.time}</small>
+                            <p>${p.text}</p>
+                            <div class="comment-box" id="c-${id}"></div>
+                            ${commentUI}
+                        </div>`;
+                });
+            }
+        });
     });
+
+    window.sendMsg = (id) => {
+        const val = document.getElementById(`i-${id}`).value;
+        if(val) push(ref(db, `comments/${id}`), { text: val, user: auth.currentUser.email });
+    };
 </script>
 </body>
 </html>
