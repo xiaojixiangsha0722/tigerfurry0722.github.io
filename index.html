@@ -25,6 +25,10 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        .tab-active {
+            border-bottom: 2px solid #2563eb;
+            color: #2563eb;
+        }
     </style>
 </head>
 <body class="bg-gray-50 flex flex-col items-center justify-center min-h-screen p-4 font-sans text-gray-700 relative">
@@ -78,7 +82,7 @@
 
         <div class="mt-10 pt-6 border-t border-gray-100">
             <button onclick="toggleLoginModal()" class="text-[10px] text-gray-300 hover:text-blue-400 transition-all uppercase tracking-widest px-4 py-2 hover:bg-gray-50 rounded-lg">
-                使用支援郵件提供的帳號密碼來繞過驗證
+                使用支援郵件提供的帳號密碼或密鑰來繞過驗證
             </button>
         </div>
     </div>
@@ -111,9 +115,27 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 </div>
                 <h3 class="text-xl font-bold text-gray-800 tracking-tight">管理員認證</h3>
-                <p class="text-xs text-gray-400 mt-1">請輸入由技術支援提供的憑據</p>
+                
+                <!-- 切換標籤 -->
+                <div class="flex justify-center mt-4 border-b border-gray-100">
+                    <button id="tab-key" onclick="switchTab('key')" class="px-4 py-2 text-xs font-bold uppercase tracking-wider tab-active">密鑰登入</button>
+                    <button id="tab-account" onclick="switchTab('account')" class="px-4 py-2 text-xs font-bold uppercase tracking-wider text-gray-400">帳號登入</button>
+                </div>
             </div>
-            <form onsubmit="event.preventDefault(); handleLogin();" class="space-y-4">
+
+            <!-- 密鑰登入表單 -->
+            <form id="form-key" onsubmit="event.preventDefault(); handleKeyLogin();" class="space-y-4">
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Admin Access Key</label>
+                    <input type="password" id="access-key" placeholder="輸入 6 位數認證密鑰" class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-center tracking-[1em]">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white py-3.5 rounded-2xl font-bold hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all active:scale-95 mt-2">
+                    立即驗證
+                </button>
+            </form>
+
+            <!-- 帳號登入表單 (留著不搞，但可切換) -->
+            <form id="form-account" onsubmit="event.preventDefault(); handleAccountLogin();" class="space-y-4 hidden">
                 <div class="space-y-1">
                     <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Account / Email</label>
                     <input type="text" id="email" placeholder="帳號或電子郵件" class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all">
@@ -122,27 +144,18 @@
                     <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Security Password</label>
                     <input type="password" id="password" placeholder="密碼" class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                 </div>
-                <button type="submit" id="login-submit" class="w-full bg-blue-600 text-white py-3.5 rounded-2xl font-bold hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all active:scale-95 mt-2">
-                    認證並繞過
+                <button type="submit" class="w-full bg-gray-400 text-white py-3.5 rounded-2xl font-bold cursor-not-allowed mt-2" disabled>
+                    此功能暫不開放
                 </button>
-                <button type="button" onclick="toggleLoginModal()" class="w-full text-gray-400 text-xs py-2 hover:text-gray-600 transition-colors">返回攔截頁面</button>
             </form>
+
+            <button type="button" onclick="toggleLoginModal()" class="w-full text-gray-400 text-xs py-2 mt-4 hover:text-gray-600 transition-colors">返回攔截頁面</button>
             <p id="login-error" class="text-red-500 text-xs mt-4 text-center hidden font-medium px-4 py-2 bg-red-50 rounded-lg italic"></p>
         </div>
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyB_S4O6H7z_P9jK2L3M4N5O6P7Q8R9S0", 
-            authDomain: "furmony-web.firebaseapp.com",
-            projectId: "furmony-web",
-            storageBucket: "furmony-web.appspot.com",
-            messagingSenderId: "123456789012",
-            appId: "1:123456789012:web:abcdef123456"
-        };
-
-        let auth;
-        let isLocalTestMode = false;
+        const MASTER_KEY = "111111"; // 指定密鑰
 
         window.onload = function() {
             setTimeout(() => {
@@ -150,27 +163,17 @@
                 loadingScreen.style.opacity = '0';
                 setTimeout(() => {
                     loadingScreen.style.display = 'none';
-                    initFirebase();
+                    updateUI();
                 }, 500);
             }, 3000);
         };
 
-        function initFirebase() {
-            try {
-                firebase.initializeApp(firebaseConfig);
-                auth = firebase.auth();
-                auth.onAuthStateChanged((user) => updateUI(user));
-            } catch (e) {
-                console.warn("Firebase 初始化失敗，啟用本地測試模式。");
-                isLocalTestMode = true;
-                updateUI(null);
-            }
-        }
-
-        function updateUI(user) {
+        function updateUI() {
             const blockScreen = document.getElementById('block-screen');
             const adminScreen = document.getElementById('admin-screen');
-            if (user || sessionStorage.getItem('admin_bypass') === 'true') {
+            const isBypassed = sessionStorage.getItem('admin_bypass') === 'true';
+
+            if (isBypassed) {
                 blockScreen.style.display = 'none';
                 adminScreen.classList.remove('hidden');
             } else {
@@ -185,55 +188,47 @@
             document.getElementById('login-error').classList.add('hidden');
         }
 
-        async function handleLogin() {
+        function switchTab(type) {
+            const tabKey = document.getElementById('tab-key');
+            const tabAccount = document.getElementById('tab-account');
+            const formKey = document.getElementById('form-key');
+            const formAccount = document.getElementById('form-account');
+
+            if (type === 'key') {
+                tabKey.classList.add('tab-active');
+                tabKey.classList.remove('text-gray-400');
+                tabAccount.classList.remove('tab-active');
+                tabAccount.classList.add('text-gray-400');
+                formKey.classList.remove('hidden');
+                formAccount.classList.add('hidden');
+            } else {
+                tabAccount.classList.add('tab-active');
+                tabAccount.classList.remove('text-gray-400');
+                tabKey.classList.remove('tab-active');
+                tabKey.classList.add('text-gray-400');
+                formAccount.classList.remove('hidden');
+                formKey.classList.add('hidden');
+            }
+        }
+
+        // 密鑰登入處理
+        function handleKeyLogin() {
+            const keyInput = document.getElementById('access-key').value;
             const errorLabel = document.getElementById('login-error');
-            const submitBtn = document.getElementById('login-submit');
-            const account = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
 
-            if (!account || !password) {
-                errorLabel.innerText = "請輸入管理員憑據";
-                errorLabel.classList.remove('hidden');
-                return;
-            }
-
-            submitBtn.disabled = true;
-            submitBtn.innerText = "驗證中...";
-            errorLabel.classList.add('hidden');
-
-            // --- 測試帳密邏輯 ---
-            if (account === 'admin' && password === 'admin') {
+            if (keyInput === MASTER_KEY) {
                 sessionStorage.setItem('admin_bypass', 'true');
-                setTimeout(() => {
-                    updateUI(true);
-                    toggleLoginModal();
-                    submitBtn.disabled = false;
-                    submitBtn.innerText = "認證並繞過";
-                }, 1000);
-                return;
-            }
-
-            // --- 真實 Firebase 登入 ---
-            try {
-                await auth.signInWithEmailAndPassword(account, password);
+                updateUI();
                 toggleLoginModal();
-            } catch (error) {
-                if (error.code === 'auth/user-disabled') {
-                    errorLabel.innerText = "很抱歉 您的帳號無效 請聯絡:hehans1108personal@proton.me";
-                } else {
-                    errorLabel.innerText = "!!權限驗證失敗：無效的憑據!!";
-                }
+            } else {
+                errorLabel.innerText = "!!密鑰認證失敗：無效的通行密鑰!!";
                 errorLabel.classList.remove('hidden');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerText = "認證並繞過";
             }
         }
 
         function handleLogout() {
             sessionStorage.removeItem('admin_bypass');
-            if (auth) auth.signOut().then(() => location.reload());
-            else location.reload();
+            location.reload();
         }
     </script>
 </body>
